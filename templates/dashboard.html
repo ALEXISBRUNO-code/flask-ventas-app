@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TechStore POS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">
+            <i class="bi bi-graph-up text-info"></i> Dashboard de Ventas
+        </h2>
+    </div>
+</div>
+
+<!-- KPIs Principales -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-currency-dollar display-4"></i>
+                <h2 class="mt-2 mb-0">S/ {{ "%.2f"|format(total_ventas_hoy) }}</h2>
+                <p class="mb-0">Ventas del Día</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <i class="bi bi-cart-check display-4"></i>
+                <h2 class="mt-2 mb-0">{{ numero_ventas_hoy }}</h2>
+                <p class="mb-0">Número de Ventas Hoy</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up-arrow display-4"></i>
+                <h2 class="mt-2 mb-0">S/ {{ "%.2f"|format(total_ventas_hoy / numero_ventas_hoy if numero_ventas_hoy > 0 else 0) }}</h2>
+                <p class="mb-0">Ticket Promedio</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos y Tablas -->
+<div class="row g-4">
+    <!-- Productos Más Vendidos -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-trophy"></i> Productos Más Vendidos</h5>
+            </div>
+            <div class="card-body">
+                {% if productos_vendidos %}
+                <canvas id="topProductsChart"></canvas>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p>No hay datos de ventas aún</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Bajo -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Productos con Stock Bajo</h5>
+            </div>
+            <div class="card-body">
+                {% if productos_stock_bajo %}
+                <div class="list-group">
+                    {% for producto in productos_stock_bajo %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ producto.nombre }}</strong><br>
+                            <small class="text-muted">{{ producto.categoria }}</small>
+                        </div>
+                        <span class="badge bg-warning text-dark fs-6">{{ producto.stock }} unidades</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-check-circle display-4 text-success"></i>
+                    <p>Todo el inventario está en buen estado</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ventas Recientes -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Ventas Recientes</h5>
+            </div>
+            <div class="card-body">
+                {% if ventas_recientes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Productos</th>
+                                <th>Usuario</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for venta in ventas_recientes %}
+                            <tr>
+                                <td class="fw-bold">#{{ venta.id }}</td>
+                                <td>{{ venta.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    {% if venta.cliente %}
+                                    <i class="bi bi-person-circle"></i> {{ venta.cliente.nombre }}
+                                    {% else %}
+                                    <span class="text-muted">Cliente general</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>
+                                        {% for detalle in venta.detalles[:2] %}
+                                        <span class="badge bg-secondary">{{ detalle.producto.nombre }} ({{ detalle.cantidad }})</span>
+                                        {% endfor %}
+                                        {% if venta.detalles|length > 2 %}
+                                        <span class="badge bg-info">+{{ venta.detalles|length - 2 }} más</span>
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small><i class="bi bi-person"></i> {{ venta.usuario.nombre }}</small>
+                                </td>
+                                <td class="fw-bold text-success">S/ {{ "%.2f"|format(venta.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p>No hay ventas registradas</p>
+                    <a href="{{ url_for('ventas') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Realizar Primera Venta
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if productos_vendidos %}
+<script>
+// Preparar datos para el gráfico
+const productosData = {{ productos_vendidos|tojson|safe }};
+const labels = productosData.map(p => p[0]);
+const data = productosData.map(p => p[1]);
+
+// Crear gráfico de productos más vendidos
+const ctx = document.getElementById('topProductsChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Unidades Vendidas',
+            data: data,
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

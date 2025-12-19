@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Reportes - TechStore POS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">
+            <i class="bi bi-file-earmark-bar-graph text-primary"></i> Reportes y Exportaciones
+        </h2>
+    </div>
+</div>
+
+<!-- Opciones de Reportes -->
+<div class="row g-4">
+    <!-- Reporte de Ventas PDF -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-pdf"></i> Reporte de Ventas (PDF)
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Genera un reporte en PDF de todas las ventas realizadas en un rango de fechas.</p>
+                
+                <form id="formReporteVentasPDF" method="GET" action="{{ url_for('reporte_ventas_pdf') }}" target="_blank">
+                    <div class="mb-3">
+                        <label class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" name="fecha_inicio">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" name="fecha_fin">
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="bi bi-download"></i> Generar PDF
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reporte de Inventario Excel -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-excel"></i> Reporte de Inventario (Excel)
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Exporta el inventario completo a un archivo Excel con todos los detalles de productos.</p>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Este reporte incluye:
+                    <ul class="mb-0 mt-2">
+                        <li>Listado completo de productos</li>
+                        <li>Stock actual y mínimo</li>
+                        <li>Precios y categorías</li>
+                        <li>Estado de stock</li>
+                    </ul>
+                </div>
+                
+                <a href="{{ url_for('reporte_inventario_excel') }}" class="btn btn-success w-100">
+                    <i class="bi bi-download"></i> Descargar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Información Adicional -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Información sobre Reportes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-pdf text-danger"></i> Reportes PDF</h6>
+                        <ul>
+                            <li>Formato profesional para impresión</li>
+                            <li>Ideal para auditorías y reportes oficiales</li>
+                            <li>Filtra por rango de fechas</li>
+                            <li>Incluye totales y resúmenes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-excel text-success"></i> Reportes Excel</h6>
+                        <ul>
+                            <li>Formato editable para análisis</li>
+                            <li>Ideal para cálculos y gráficos personalizados</li>
+                            <li>Compatible con Microsoft Excel y Google Sheets</li>
+                            <li>Fácil de compartir y procesar</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('formReporteVentasPDF').addEventListener('submit', function(e) {
+    Toast.fire({
+        icon: 'info',
+        title: 'Generando reporte PDF...'
+    });
+});
+</script>
+{% endblock %}

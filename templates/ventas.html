@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas - TechStore POS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">
+            <i class="bi bi-cart-check text-primary"></i> Registrar Nueva Venta
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Lista de Productos -->
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-bag"></i> Productos Disponibles</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="text" id="searchProduct" class="form-control" placeholder="🔍 Buscar producto...">
+                </div>
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th>Precio</th>
+                                <th>Stock</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList">
+                            {% for producto in productos %}
+                            <tr class="product-row" data-nombre="{{ producto.nombre }}">
+                                <td class="fw-bold">{{ producto.nombre }}</td>
+                                <td><span class="badge bg-secondary">{{ producto.categoria }}</span></td>
+                                <td>S/ {{ "%.2f"|format(producto.precio) }}</td>
+                                <td>
+                                    {% if producto.stock_bajo %}
+                                    <span class="badge bg-warning text-dark">{{ producto.stock }}</span>
+                                    {% else %}
+                                    <span class="badge bg-success">{{ producto.stock }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary add-to-cart" 
+                                            data-id="{{ producto.id }}" 
+                                            data-nombre="{{ producto.nombre }}" 
+                                            data-precio="{{ producto.precio }}"
+                                            data-stock="{{ producto.stock }}"
+                                            {% if producto.stock == 0 %}disabled{% endif %}>
+                                        <i class="bi bi-plus-circle"></i> Agregar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carrito de Compras -->
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-cart3"></i> Carrito de Compras</h5>
+            </div>
+            <div class="card-body">
+                <!-- Selección de Cliente -->
+                <div class="mb-3">
+                    <label class="form-label"><i class="bi bi-person"></i> Cliente (opcional)</label>
+                    <select class="form-select" id="clienteSelect">
+                        <option value="">Sin cliente</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}">{{ cliente.nombre }} - {{ cliente.documento }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <hr>
+                
+                <div id="cartItems" class="mb-3" style="min-height: 200px;">
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-cart-x display-4"></i>
+                        <p>No hay productos en el carrito</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">S/ <span id="subtotal">0.00</span></span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>IGV (18%):</span>
+                        <span class="fw-bold">S/ <span id="igv">0.00</span></span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Total:</h4>
+                    <h3 class="mb-0 text-success fw-bold">S/ <span id="totalAmount">0.00</span></h3>
+                </div>
+                
+                <button id="btnFinalizarVenta" class="btn btn-success w-100 btn-lg" disabled>
+                    <i class="bi bi-check-circle"></i> Finalizar Venta
+                </button>
+                
+                <button id="btnLimpiarCarrito" class="btn btn-outline-danger w-100 mt-2">
+                    <i class="bi bi-trash"></i> Limpiar Carrito
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cart = [];
+
+// Buscar productos
+document.getElementById('searchProduct').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('.product-row');
+    
+    rows.forEach(row => {
+        const nombre = row.dataset.nombre.toLowerCase();
+        row.style.display = nombre.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Agregar al carrito
+document.querySelectorAll('.add-to-cart').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = parseInt(this.dataset.id);
+        const nombre = this.dataset.nombre;
+        const precio = parseFloat(this.dataset.precio);
+        const stock = parseInt(this.dataset.stock);
+        
+        const existente = cart.find(item => item.id === id);
+        
+        if (existente) {
+            if (existente.cantidad < stock) {
+                existente.cantidad++;
+            } else {
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'No hay más stock disponible'
+                });
+                return;
+            }
+        } else {
+            cart.push({id, nombre, precio, cantidad: 1, stock});
+        }
+        
+        actualizarCarrito();
+    });
+});
+
+function actualizarCarrito() {
+    const cartContainer = document.getElementById('cartItems');
+    const subtotalElement = document.getElementById('subtotal');
+    const igvElement = document.getElementById('igv');
+    const totalElement = document.getElementById('totalAmount');
+    const btnFinalizar = document.getElementById('btnFinalizarVenta');
+    
+    if (cart.length === 0) {
+        cartContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-cart-x display-4"></i>
+                <p>No hay productos en el carrito</p>
+            </div>
+        `;
+        subtotalElement.textContent = '0.00';
+        igvElement.textContent = '0.00';
+        totalElement.textContent = '0.00';
+        btnFinalizar.disabled = true;
+        return;
+    }
+    
+    let html = '';
+    let subtotal = 0;
+    
+    cart.forEach((item, index) => {
+        const itemSubtotal = item.precio * item.cantidad;
+        subtotal += itemSubtotal;
+        
+        html += `
+            <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${item.nombre}</strong><br>
+                        <small class="text-muted">S/ ${item.precio.toFixed(2)} c/u</small>
+                    </div>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarDelCarrito(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" onclick="cambiarCantidad(${index}, -1)">
+                            <i class="bi bi-dash"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" disabled>${item.cantidad}</button>
+                        <button class="btn btn-outline-secondary" onclick="cambiarCantidad(${index}, 1)">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </div>
+                    <strong>S/ ${itemSubtotal.toFixed(2)}</strong>
+                </div>
+            </div>
+        `;
+    });
+    
+    const igv = subtotal * 0.18;
+    const total = subtotal + igv;
+    
+    cartContainer.innerHTML = html;
+    subtotalElement.textContent = subtotal.toFixed(2);
+    igvElement.textContent = igv.toFixed(2);
+    totalElement.textContent = total.toFixed(2);
+    btnFinalizar.disabled = false;
+}
+
+function cambiarCantidad(index, cambio) {
+    const item = cart[index];
+    const nuevaCantidad = item.cantidad + cambio;
+    
+    if (nuevaCantidad <= 0) {
+        eliminarDelCarrito(index);
+    } else if (nuevaCantidad <= item.stock) {
+        item.cantidad = nuevaCantidad;
+        actualizarCarrito();
+    } else {
+        Toast.fire({
+            icon: 'warning',
+            title: 'No hay suficiente stock'
+        });
+    }
+}
+
+function eliminarDelCarrito(index) {
+    cart.splice(index, 1);
+    actualizarCarrito();
+}
+
+document.getElementById('btnLimpiarCarrito').addEventListener('click', function() {
+    Swal.fire({
+        title: '¿Limpiar carrito?',
+        text: "Se eliminarán todos los productos",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            cart = [];
+            actualizarCarrito();
+            Toast.fire({
+                icon: 'success',
+                title: 'Carrito limpiado'
+            });
+        }
+    });
+});
+
+document.getElementById('btnFinalizarVenta').addEventListener('click', async function() {
+    if (cart.length === 0) return;
+    
+    const clienteId = document.getElementById('clienteSelect').value;
+    
+    const items = cart.map(item => ({
+        id: item.id,
+        cantidad: item.cantidad
+    }));
+    
+    try {
+        const response = await fetch('{{ url_for("registrar_venta") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                items: items,
+                cliente_id: clienteId || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Venta registrada!',
+                html: `
+                    <p>Venta #${data.venta_id}</p>
+                    <h3>Total: S/ ${data.total.toFixed(2)}</h3>
+                `,
+                confirmButtonText: 'Aceptar'
+            }).then(() => {
+                cart = [];
+                actualizarCarrito();
+                document.getElementById('clienteSelect').value = '';
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message
+            });
+        }
+    } catch (error) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Error al procesar la venta'
+        });
+        console.error(error);
+    }
+});
+</script>
+{% endblock %}

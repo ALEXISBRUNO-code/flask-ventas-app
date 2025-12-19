@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - TechStore POS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold">
+            <i class="bi bi-people text-success"></i> Gestión de Clientes
+        </h2>
+    </div>
+</div>
+
+<!-- Botón Nuevo Cliente y Búsqueda -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form method="GET" action="{{ url_for('clientes') }}">
+            <div class="input-group">
+                <input type="text" class="form-control" name="buscar" 
+                       placeholder="🔍 Buscar por nombre o documento..." 
+                       value="{{ request.args.get('buscar', '') }}">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4 text-end">
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#nuevoClienteModal">
+            <i class="bi bi-person-plus"></i> Nuevo Cliente
+        </button>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-people display-4 text-success"></i>
+                <h3 class="mt-2 mb-0">{{ clientes|length }}</h3>
+                <p class="text-muted mb-0">Clientes Activos</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-cart-check display-4 text-primary"></i>
+                <h3 class="mt-2 mb-0">{{ clientes|sum(attribute='numero_compras') }}</h3>
+                <p class="text-muted mb-0">Compras Totales</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="bi bi-currency-dollar display-4 text-info"></i>
+                <h3 class="mt-2 mb-0">S/ {{ "%.2f"|format(clientes|sum(attribute='total_compras')) }}</h3>
+                <p class="text-muted mb-0">Ventas Totales</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Clientes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Clientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Documento</th>
+                                <th>Teléfono</th>
+                                <th>Email</th>
+                                <th>Compras</th>
+                                <th>Total Comprado</th>
+                                <th>Fecha Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in clientes %}
+                            <tr>
+                                <td class="fw-bold">#{{ cliente.id }}</td>
+                                <td>
+                                    <i class="bi bi-person-circle me-2 text-success"></i>
+                                    {{ cliente.nombre }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ cliente.tipo_documento }}: {{ cliente.documento }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if cliente.telefono %}
+                                    <i class="bi bi-telephone"></i> {{ cliente.telefono }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if cliente.email %}
+                                    <i class="bi bi-envelope"></i> {{ cliente.email }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ cliente.numero_compras }}</span>
+                                </td>
+                                <td class="fw-bold text-success">S/ {{ "%.2f"|format(cliente.total_compras) }}</td>
+                                <td>{{ cliente.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Cliente -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Nuevo Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('nuevo_cliente') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo *</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo Doc. *</label>
+                                <select class="form-select" name="tipo_documento" required>
+                                    <option value="DNI">DNI</option>
+                                    <option value="RUC">RUC</option>
+                                    <option value="CE">CE</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Número Doc. *</label>
+                                <input type="text" class="form-control" name="documento" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" name="telefono">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Dirección</label>
+                        <textarea class="form-control" name="direccion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-save"></i> Guardar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
